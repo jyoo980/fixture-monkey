@@ -1,7 +1,10 @@
+import org.checkerframework.gradle.plugin.CheckerFrameworkExtension
+
 plugins {
     java
     `java-library`
     id("io.github.gradle-nexus.publish-plugin") version "1.3.0"
+    id("org.checkerframework") version "0.6.37"
 }
 
 allprojects {
@@ -14,7 +17,9 @@ subprojects {
         plugin("java")
         plugin("java-library")
         plugin("com.navercorp.fixturemonkey.gradle.plugin.optional-dependencies")
+        plugin("org.checkerframework")
     }
+
 
     dependencies {
         api("com.google.code.findbugs:jsr305:${Versions.FIND_BUGS_JSR305}")
@@ -29,6 +34,26 @@ subprojects {
         toolchain { languageVersion = JavaLanguageVersion.of(8) }
         withJavadocJar()
         withSourcesJar()
+    }
+    configure<CheckerFrameworkExtension> {
+	      checkers = mutableListOf(
+	          "org.checkerframework.checker.optional.OptionalChecker",
+	      )
+	      extraJavacArgs = mutableListOf(
+	          "-AsuppressWarnings=type.anno.before.modifier,type.anno.before.decl.anno",
+	          "-AassumePure",
+	          "-AwarnUnneededSuppressions",
+	          "-AassumeAssertionsAreEnabled",
+        )
+        excludeTests = true
+        if (project.hasProperty("cfLocal")) {
+          val cfHome = System.getenv("CHECKERFRAMEWORK")
+          dependencies {
+            compileOnly(files(cfHome + "/checker/dist/checker-qual.jar"))
+            testCompileOnly(files(cfHome + "/checker/dist/checker-qual.jar"))
+            checkerFramework(files(cfHome + "/checker/dist/checker.jar"))
+          }
+        }
     }
 
     tasks.jar {
